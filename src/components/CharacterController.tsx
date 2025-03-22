@@ -154,7 +154,7 @@ export const CharacterController = React.forwardRef<any, CharacterControllerProp
       // If there's no player input or only lateral input, force forward movement
       if (!movement || (movement && Math.abs(movement.normalizedZ) < 0.1)) {
         movement = movement || { sprint: false, normalizedX: 0, normalizedZ: 0 };
-        movement.normalizedZ = -1; // Always move forward in Z direction
+        movement.normalizedZ = 1; // Change from -1 to 1 to move in positive Z direction
       }
     }
     
@@ -164,12 +164,12 @@ export const CharacterController = React.forwardRef<any, CharacterControllerProp
       
       // Apply runner acceleration for forward movement
       const runnerMultiplier = isEndlessRunner ? 
-        (movement.normalizedZ < 0 ? autoForwardSpeed / controls.moveSpeed : 1) : 1;
+        (movement.normalizedZ > 0 ? autoForwardSpeed / controls.moveSpeed : 1) : 1;
       
       let velocity = createMovementVelocity(
         movement.normalizedX,
         movement.normalizedZ,
-        moveForce * sprintMultiplier * (movement.normalizedZ < 0 ? runnerMultiplier : 1),
+        moveForce * sprintMultiplier * (movement.normalizedZ > 0 ? runnerMultiplier : 1),
         linvel.y
       );
       
