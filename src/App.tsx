@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { KeyboardControls, Environment, useTexture } from '@react-three/drei';
+import { KeyboardControls, Environment } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { Bolt } from 'lucide-react';
 import { 
@@ -15,7 +15,6 @@ import {
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { CharacterController } from './components/CharacterController';
-import { Ground } from './components/Ground';
 import { Balls } from './components/Balls';
 import { FollowCamera } from './components/FollowCamera';
 import { useCharacterControls } from './hooks/useCharacterControls';
@@ -25,6 +24,7 @@ import { usePostProcessingControls } from './hooks/usePostProcessingControls';
 import { Leva } from 'leva';
 import { MobileControlsProvider } from './contexts/MobileControlsContext';
 import { MobileControls } from './components/MobileControls';
+import { EndlessRoad, EndlessRoadRef, ConnectPlayerToRoad } from './components/EndlessRoad';
 
 const characterRef = { current: null };
 
@@ -51,11 +51,12 @@ function DynamicDepthOfField({ enabled, target, focalLength, bokehScale }) {
 }
 
 function App() {
-  // Order matters for GUI - call lighting controls last
-  const characterControls = useCharacterControls();
-  const cameraControls = useCameraControls();
+  // Initialize controls
+  useCharacterControls();
+  useCameraControls();
   const lighting = useLightingControls();
   const postProcessing = usePostProcessingControls();
+  const roadRef = useRef<EndlessRoadRef>(null);
 
   return (
     <div className="w-full h-screen">
@@ -103,8 +104,9 @@ function App() {
             positionIterations={5}
             velocityIterations={4}
           >
-            <CharacterController ref={characterRef} />
-            <Ground />
+            <CharacterController ref={characterRef} isEndlessRunner={true} roadRef={roadRef} />
+            <EndlessRoad ref={roadRef} initialSpeed={15} />
+            <ConnectPlayerToRoad playerRef={characterRef} roadRef={roadRef} />
             <Balls />
           </Physics>
           <FollowCamera target={characterRef} />

@@ -8,6 +8,7 @@ import { useCharacterControls } from '../hooks/useCharacterControls';
 import { calculateMovement, createJumpImpulse, createFallForce, createMovementVelocity } from '../utils/physics';
 import { useMobileControls } from '../contexts/MobileControlsContext';
 import { CharacterModel } from './CharacterModel';
+import { EndlessRoadRef } from './EndlessRoad';
 
 export type CharacterState = {
   moveSpeed: number;
@@ -17,7 +18,12 @@ export type CharacterState = {
   velocity: { x: number; y: number; z: number };
 };
 
-export const CharacterController = React.forwardRef<any>((_, ref) => {
+export interface CharacterControllerProps {
+  isEndlessRunner?: boolean;
+  roadRef?: React.RefObject<EndlessRoadRef>;
+}
+
+export const CharacterController = React.forwardRef<any, CharacterControllerProps>(({ isEndlessRunner = false, roadRef }, ref) => {
   const rigidBody = useRef<RigidBodyApi>(null);
   const modelRef = useRef<THREE.Group>(null);
   const { rapier, world } = useRapier();
@@ -140,13 +146,30 @@ export const CharacterController = React.forwardRef<any>((_, ref) => {
       };
     }
     
+    // Add auto-forward movement for endless runner mode
+    let autoForwardSpeed = 0;
+    if (isEndlessRunner && roadRef?.current) {
+      autoForwardSpeed = roadRef.current.getForwardSpeed();
+      
+      // If there's no player input or only lateral input, force forward movement
+      if (!movement || (movement && Math.abs(movement.normalizedZ) < 0.1)) {
+        movement = movement || { sprint: false, normalizedX: 0, normalizedZ: 0 };
+        movement.normalizedZ = -1; // Always move forward in Z direction
+      }
+    }
+    
     if (movement) {
       const sprintMultiplier = movement.sprint ? controls.sprintMultiplier : 1;
       const moveForce = controls.moveSpeed * (isGrounded ? 1 : controls.airControl);
+      
+      // Apply runner acceleration for forward movement
+      const runnerMultiplier = isEndlessRunner ? 
+        (movement.normalizedZ < 0 ? autoForwardSpeed / controls.moveSpeed : 1) : 1;
+      
       let velocity = createMovementVelocity(
         movement.normalizedX,
         movement.normalizedZ,
-        moveForce * sprintMultiplier,
+        moveForce * sprintMultiplier * (movement.normalizedZ < 0 ? runnerMultiplier : 1),
         linvel.y
       );
       
